@@ -19,11 +19,14 @@ classdef motioncloud
   % Example usage:
   %
   %   m = motioncloud(256,256,120);     % 256 x 256 texels, 120 frames
+  %
+  %   % override default parameters
   %   m.th = pi/3;                      % mean orientation (radians)
   %   [m.Vx,m.Vy] = pol2cart(m.th,1.0); % mean horiz. and vert. speed
   %   m.sf = 32/m.Nx;                   % mean spatial frequency (32 cycles per frame)
   %   m.alpha = 1.0;                    % 1/f noise spectral density
   %   m.contrast = 0.12;                % contrast energy
+  %   m.method = 'ENERGY';
   %
   %   % generate the spatio-temporal texture sequence
   %   s = m.getSequence();
@@ -58,7 +61,7 @@ classdef motioncloud
     alpha = 0.0 % spectral envelope exponent (0.0 = white noise, 1.0 = 1/f noise)
     
     contrast = 1.0; % contrast (or contrast energy?)
-    method = 'ENERGY'; % MICHELSON or ENERGY
+    method = 'MICHELSON'; % MICHELSON or ENERGY
     
     ft0 = Inf; % spatio-temporal scaling factor (see eq. 14, p. 3221)
 
@@ -110,17 +113,6 @@ classdef motioncloud
       
       nargoutchk(1,2);
       
-      if nargout > 2
-        % return the impulse response...
-        [fx,fy,ft] = m.getGrid();
-        
-        phase = -2*pi * (m.Nx/2.*fx + m.Ny/2.*fy + m.Nt/2.*ft);
-
-        Z = exp(1j * phase);
-        
-        varargout{3} = Z;
-      end
-      
       rng(args.s); % <-- (re-)set random number generator
         
       % 1. generate a random phase spectrum (uniform distribution)
@@ -135,12 +127,14 @@ classdef motioncloud
       Z = ifftshift(Z);
       Z(1,1,1) = 0.0; % kill the dc component
       
-      z = ifftn(Z);
+      z = real(ifftn(Z));
 
-      varargout{2} = real(z);
+      if nargout > 1
+        varargout{2} = z;
+      end
       
       % 4. normalize and set contrast
-      varargout{1} = m.normalize(real(z),m.contrast,m.method);
+      varargout{1} = m.normalize(z,m.contrast,m.method);
     end
     
     function [fx,fy,ft] = getGrid(m)
@@ -215,7 +209,7 @@ classdef motioncloud
         f = motioncloud.rfreq(fx,fy,ft,[],true); % cleanDivision = true
         env = 1./f .* exp(-0.5*(log(f/f0).^2)/((log((f0+Bf)/f0)).^2));
       else
-        env = exp(-.5*(mc.rfreq(fx,fy,ft,ft0) - f0).^2/Bf.^2)
+        env = exp(-.5*(motioncloud.rfreq(fx,fy,ft,ft0) - f0).^2/Bf.^2);
       end
       
     end

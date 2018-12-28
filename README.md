@@ -17,11 +17,14 @@ For Laurent Perrinet's Python implementation see:
 Example usage:
 ```
 m = motioncloud(256,256,120);     % 256 x 256 texels, 120 frames
+
+% overide default parameters
 m.th = pi/3;                      % mean orientation (radians)
 [m.Vx,m.Vy] = pol2cart(m.th,1.0); % mean horiz. and vert. speed
 m.sf = 32/m.Nx;                   % mean spatial frequency (32 cycles per frame)
 m.alpha = 1.0;                    % 1/f noise spectral density
 m.contrast = 0.12;                % contrast energy
+m.method = 'ENERGY';
 
 % generate the spatio-temporal image sequence
 s = m.getSequence();
