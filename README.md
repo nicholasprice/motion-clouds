@@ -34,8 +34,8 @@ s = m.getSequence();
 % preview it...
 figure; colormap(gray(256));
 for ii = 1:m.Nt % loop over frames
-  imagesc(s(:,:,ii); delay(0.020);
-  axis image
+  imagesc(s(:,:,ii); axis image
+  delay(0.020);
 end
 ```
 
