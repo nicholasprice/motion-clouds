@@ -32,11 +32,15 @@ classdef motioncloud
   %   s = m.getSequence();
   %
   %   % preview it...
+  %   m.preview
+  %     or 
   %   figure; colormap(gray(256));
   %   for ii = 1:m.Nt % loop over frames
-  %     imagesc(s(:,:,ii); delay(0.020);
+  %     imagesc(s(:,:,ii)); pause(0.020);
   %     axis image
   %   end
+
+  % Check Step 2 in getSequence - it's funky if not square. 
   
   % 2018-12-26 - Shaun L. Cloherty <s.cloherty@ieee.org>
   
@@ -66,14 +70,39 @@ classdef motioncloud
     ft0 = Inf; % spatio-temporal scaling factor (see eq. 14, p. 3221)
 
     logGabor = true; % use a log-Gabor kernel (instead of a standard Gabor)
+    
+    scaleSpace = 1; % (pixels per degree). Allows all spatial parameters to be specified in degrees. Use 1 to define sizes in pixels.
+    scaleTime = 1; % (frame rate). Allows all temporal parameters to be specified in time (ms). Use 1 to define times in frames. 
   end
   
   methods
     function m = motioncloud(nx,ny,nt,varargin) % constructor
       m.Nx = nx;
       m.Ny = ny;
-      
       m.Nt = nt;
+      
+      %% NEW
+      % parse optional arguments...
+      p = inputParser();
+      p.KeepUnmatched = true;
+      p.addParameter('sf', 0.125); % mean spatial freq. (cycles per pixel or cycles per degree)
+      p.addParameter('Bsf', 0.1); % spatial freq. bandwidth
+      
+      p.addParameter('Vx', 1.0); % mean horiz. speed (spatial periods/temporal period?)
+      p.addParameter('Vy', 0.0); % mean vert. speed
+      p.addParameter('Bv', 0.5);
+      
+      p.addParameter('th', 0.0); % mean orientation (radians)
+      p.addParameter('Bth',pi/16.0); % orientation bandwidth (radians)
+      
+%       p.addParameter('scaleSpace', 1);
+      
+       p.parse(varargin{:});
+      args = p.Results;
+      fi = fieldnames(args);
+      for a=1:length(fi), m.(fi{a}) = args.(fi{a}); end
+      
+      
     end
     
     function env = getEnvelope(m)
@@ -105,7 +134,7 @@ classdef motioncloud
       % sequence.
       
       p = inputParser();
-      p.addParameter('s',rng(),@(x) validateattributes(x,{'struct'},{'nonempty'})); % settings of the random number generator
+      p.addParameter('s',rng(), @(x) validateattributes(x,{'struct'},{'nonempty'})); % settings of the random number generator
       
       p.parse(varargin{:});
       args = p.Results;
@@ -121,7 +150,7 @@ classdef motioncloud
       Z = exp(1j * phase);
                       
       % 2. multiply by the spatio-temporal frequency envelope
-      Z = m.getEnvelope() .* Z;
+      Z = m.getEnvelope() .* Z; 
 
       % 3. compute the inverse fft
       Z = ifftshift(Z);
@@ -148,7 +177,21 @@ classdef motioncloud
             
       [fx,fy,ft] = meshgrid(fx,fy,ft);
     end
+  
+    function preview(m,varargin)
+        s = getSequence(m, varargin{:});
+
+        figure
         
+        colormap(gray(256));
+        for ii = 1:m.Nt % loop over frames
+            imagesc(s(:,:,ii));
+            axis image
+            pause(0.020);
+        end
+    end
+    
+    
   end % end public methods
   
   methods (Static)
@@ -299,6 +342,11 @@ classdef motioncloud
           error('Unknown method %s.',method);
       end
     end
+    
+
   end % static methods
+  
+
+  
   
 end % classdef
